@@ -19,4 +19,5 @@ class TestProductPage:
                 break
             except ElementClickInterceptedException:
                 self.driver.execute_script("window.scrollBy(0, 250)")
-
+            except ElementNotInteractableException:
+                self.driver.execute_script("window.scrollBy(0, 250)")

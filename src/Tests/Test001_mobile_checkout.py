@@ -15,24 +15,30 @@ class Test001(unittest.TestCase):
         desired_capabilities = {
             "platformName": "Android",
             "platformVersion": "11",
-            "deviceName": "emulator-5554",  # cmd -> adb devices
+            "deviceName": "RF8N11DRFVA",  # cmd -> adb devices  (emulator-5554)
             "browserName": "Chrome"
         }
 
         self.driver = webdriver.Remote("http://localhost:4723/wd/hub", desired_capabilities)
         self.driver.implicitly_wait(10)
 
+        self.delivery_methods = [attr for attr in dir(DeliveryMethods) if
+                                 not callable(getattr(DeliveryMethods, attr)) and not attr.startswith("__")]
+
     def test_check_title(self):
         main_page = MainPage(self.driver)
         assert 'MatrixMedia.pl' in main_page.get_title()
 
-        test_product_page = TestProductPage(self.driver)
-        test_product_page.add_to_chart()
+        for delivery_method in self.delivery_methods:
+            test_product_page = TestProductPage(self.driver)
+            test_product_page.add_to_chart()
 
-        checkout_page = CheckoutPage(self.driver)
-        checkout_page.finalize_order()
-        checkout_page.fill_form(subject='private')
-        checkout_page.pick_delivery_method(DeliveryMethods.KURIER_DHL)
+            checkout_page = CheckoutPage(self.driver)
+            checkout_page.finalize_order()
+            checkout_page.fill_form(subject='private')
+            checkout_page.pick_delivery_method(delivery_method)
+            checkout_page.pick_payment_method()
+            checkout_page.submit_order()
 
     def tearDown(self):
         sleep(15)

@@ -5,17 +5,22 @@ from selenium.common.exceptions import ElementClickInterceptedException
 
 class CheckoutPage:
     realizuj_button = '//button[@title="Realizuj"]'
+    akceptuj_regulamin_checkbox = '//input[@id="agreement-4"]'
+    zloz_zamowienie_button = '//button[@id="aitcheckout-place-order"]'
 
     def __init__(self, driver):
         self.driver = driver
 
-    def finalize_order(self):
+    def intercepted_exception_click(self, xpath_to_element):
         for i in range(10):
             try:
-                self.driver.find_element_by_xpath(self.realizuj_button).click()
+                self.driver.find_element_by_xpath(xpath_to_element).click()
                 break
             except ElementClickInterceptedException:
                 self.driver.execute_script("window.scrollBy(0, 250)")
+
+    def finalize_order(self):
+        self.intercepted_exception_click(self.realizuj_button)
 
     def fill_form(self, subject='private'):
         if subject == 'company':
@@ -46,7 +51,8 @@ class CheckoutPage:
         self.driver.hide_keyboard()
 
     def pick_delivery_method(self, method):
-        self.driver.find_element_by_xpath(f'//input[contains(@value, "{method}")]').click()
+        self.driver.execute_script("window.scrollBy(0, 350)")
+        self.intercepted_exception_click(f'//input[contains(@value, "{method}")]')
 
         drawn_method = ''
         if method == 'Paczkomaty':
@@ -57,6 +63,32 @@ class CheckoutPage:
             drawn_method = draw_wysylka_z_wniesieniem(self.driver)
 
         print(method if drawn_method == '' else f'{method} - {drawn_method}')
+
+    def pick_payment_method(self):
+        i = 0
+        while i < 60:
+            avaliable_methods = self.driver.find_elements_by_xpath('//div[@id="co-payment-form"]/fieldset/dt')
+            if avaliable_methods:
+                break
+            i += 1
+            sleep(1)
+        else:
+            avaliable_methods = []
+
+        metody = [metoda.get_attribute('id') for metoda in avaliable_methods]
+        lista = [metoda for metoda in metody if
+                 metoda == 'dt_method_cashondelivery' or metoda == 'dt_method_banktransfer']
+        wybrana_metoda = choice(lista)
+        if lista:
+            self.driver.find_element_by_xpath(
+                f'//div[@id="co-payment-form"]/fieldset/dt[@id="{wybrana_metoda}"]').click()
+        else:
+            print("Brak metody płatności")  # TODO: some error
+            return False
+
+    def submit_order(self):
+        intercepted_exception_click(self.akceptuj_regulamin_checkbox)
+        intercepted_exception_click(self.zloz_zamowienie_button)
 
 
 def draw_paczkomat(driver):
